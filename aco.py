@@ -85,10 +85,10 @@ class AntColonyOpt:
 
             dist = math.sqrt(dist_x ** 2 + dist_y ** 2)
 
-            # Update pheromones -> penalize longer paths
+            # Update pheromones -> penalize long paths with respect to the euclidean distance
             for i in range(len(path) - 1):
-                self.tmp.pheromones[(path[i], path[i + 1])] += round((1. / dist) * .02, 4)
-                #self.tmp.pheromones[(path[i+1], path[i])] += round((1. / dist) * .02, 4) # TODO update in both directions yes/ no?
+                self.tmp.pheromones[(path[i], path[i + 1])] += round((dist / (len(path) ** 2)), 4)
+                #self.tmp.pheromones[(path[i+1], path[i])] += round((dist / len(path)), 4) # TODO update in both directions yes/ no?
 
 
     def create_path(self, start, goal):
@@ -103,7 +103,7 @@ class AntColonyOpt:
         while not curr_node == goal:
             curr_node = self.transition_probability_fct(curr_node, path) # path for heuristics
             path.append(curr_node)
-        print(path)
+        #print(path)
         self.eval_solution(path)
 
 
