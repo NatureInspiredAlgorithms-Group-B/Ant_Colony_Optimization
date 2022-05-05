@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
         # in each iteration, each ant is supposed to find the food source starting from a random position
         for _ in range(0, num_ants):
-            start = "3" #random.choice(test_graph.get_nodes())
+            start = random.choice(test_graph.get_nodes())
             test_ACO.create_path(start=start, foodsources=[], goal=goal)
         test_ACO.pheromone_update()
 

@@ -141,8 +141,6 @@ class AntColonyOpt:
         else:
             self.best_solution = path # If not initialized before
 
-        print(path)
-
         self.eval_solution(path, visited_foodsource)
 
 

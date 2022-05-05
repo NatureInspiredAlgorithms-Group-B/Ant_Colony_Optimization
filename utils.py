@@ -9,12 +9,8 @@ def get_euclidean_distance(a, b):
 
 def is_contained(path, subpath):
 
-    print(path)
-
     moves_1 = np.resize(np.array(path), (len(path) // 2, 2))
     moves_2 = np.resize(np.array(path[1:]), (len(path[1:]) // 2, 2))
-
-    print(moves_1)
 
     all_moves = np.append(moves_1, moves_2).reshape(-1, 2)
 
