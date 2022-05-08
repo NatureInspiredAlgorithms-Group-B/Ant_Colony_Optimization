@@ -17,10 +17,10 @@ class AntColonyOpt:
         self.best_solution = []
 
     def transition_probability_fct(self, curr_node, path):
-        '''
+        """
         probability of which node of the graph to choose next
         :return: next node
-        '''
+        """
 
         if curr_node in self.graph.nodes: # TODO what exactly is this trying to test?
             # for every possible next node: calculate the probability to move there from curr_node
@@ -48,10 +48,10 @@ class AntColonyOpt:
             #     return random.choice(list(final_probs.keys()))
 
     def heurisitic_info(self, i, j, path):
-        '''
+        """
         function representing prior knowledge about the specific knowledge about the edge from node i to j
         :return:
-        '''
+        """
         # If traverse from i to j has been part of the best yet solution, it is probably a good traverse
         # factor = 1
         # if is_contained(path, [i,j]):
@@ -64,18 +64,18 @@ class AntColonyOpt:
         return 1
 
     def pheromone_update(self):
-        '''
+        """
         updating all pheromones depending on evaporation rate and gained experience
-        '''
+        """
         for key in self.graph.graph.keys():
             for value in self.graph.graph.get(key):
                 self.graph.pheromones[(key, value)] = (1-self.e_rate) * self.graph.get_pheromone(key, value) + self.get_new_pheromones(key, value)
 
     def get_new_pheromones(self, i, j):
-        '''
+        """
         returns the new amount of pheromones of this part of the solution
         :return:
-        '''
+        """
         # If node was visisted, return the update
         if (i, j) in self.tmp.pheromones.keys():
             return self.tmp.pheromones[(i, j)]
@@ -83,11 +83,11 @@ class AntColonyOpt:
             return 0 # No update for this node
 
     def eval_solution(self, path, targets):
-        '''
+        """
         evaluates one solution path depending on the problem and defines the amount of pheromones for each part of the path
         influences the function get_new_pheromones for the pheromone update
         :return:
-        '''
+        """
 
         if path:
             start = np.argwhere(self.graph.grid == path[0])[0]
@@ -110,13 +110,13 @@ class AntColonyOpt:
                 self.tmp.pheromones[(path[i], path[i + 1])] += round(0.05 * (dist / len(path)), 4)
 
     def create_path(self, start, foodsources, goal):
-        '''
+        """
         creates path in the graph from start node to goal node depending on the transition function
         :param foodsources:
         :param start: node
         :param goal: node
         :return: sequence of nodes
-        '''
+        """
         curr_node = start
         path = [curr_node]
         visited_foodsource = []
