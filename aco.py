@@ -3,7 +3,7 @@ from graph import Graph
 import math
 import random
 
-from utils import get_euclidean_distance, is_contained
+from utils import get_euclidean_distance
 
 
 class AntColonyOpt:
@@ -21,7 +21,6 @@ class AntColonyOpt:
         probability of which node of the graph to choose next
         :return: next node
         '''
-
         if curr_node in self.graph.nodes: # TODO what exactly is this trying to test?
             # for every possible next node: calculate the probability to move there from curr_node
             tmp_probs = {}
@@ -29,7 +28,7 @@ class AntColonyOpt:
 
             # Get the
             for i in self.graph.graph[curr_node]:
-                tmp_probs[i] = (self.graph.get_pheromone(curr_node, i) ** self.alpha * self.heurisitic_info(curr_node, i, path) ** self.beta)
+                tmp_probs[i] = self.graph.get_pheromone(curr_node, i) ** self.alpha * self.heurisitic_info(curr_node, i, path) ** self.beta
             sum_probs = sum(tmp_probs.values())
 
             # Get the probabilities to select the next node
@@ -57,11 +56,19 @@ class AntColonyOpt:
         # if is_contained(path, [i,j]):
         #     factor = 4
 
-        # Punish going in circles
-        if j in path: # Punish going in circles TODO this is stupid if we want to run in circles :D
-            return 0.001
+        '''
+                dist = get_euclidean_distance(j, self.graph.goal)
+                if dist == 0:
+                    return 1/0.1
+                else:
+                    return 1/(dist * np.random.rand())
+        '''
 
-        return 1
+        # Punish going in circles
+        if j in path and path[path.index(i) - 1]: # TODO this is stupid if we want to run in circles :D
+            return 0.001
+        else:
+            return 10
 
     def pheromone_update(self):
         '''
@@ -90,24 +97,32 @@ class AntColonyOpt:
         '''
 
         if path:
-            start = np.argwhere(self.graph.grid == path[0])[0]
+            start = path[0]
             dist = 0
 
             # Add up the distance travelled between the foodsources
             for target in targets:
-                end = np.argwhere(self.graph.grid == target)[0] # First time meeting that node is counted
+                end = target[0] # First time meeting that node is counted
                 dist += get_euclidean_distance(start, end)
 
                 # reset start to to current node
                 start = end.copy()
 
             # From last foodsource to goal
-            end = np.argwhere(self.graph.grid == self.graph.goal)[-1]
+            end = self.graph.goal
             dist += get_euclidean_distance(start, end)
 
             # Update pheromones -> penalize long paths with respect to the euclidean distance
-            for i in range(len(path) - 1):
-                self.tmp.pheromones[(path[i], path[i + 1])] += round(0.05 * (dist / len(path)), 4)
+            # eliminate circles and multiple visited edges in one path, else they become more pheromones than other
+            # edges that may lead to false assumptions
+            tmp = []
+            i = 0
+            while i + 1 <= len(path)-1:
+                if not (path[i], path[i+1]) in tmp:
+                    tmp.append((path[i], path[i+1]))
+                i += 1
+            for i in range(len(tmp)):
+                self.tmp.pheromones[tmp[i]] += round(0.05 * (dist / len(tmp)), 4)
 
     def create_path(self, start, foodsources, goal):
         '''
@@ -142,5 +157,19 @@ class AntColonyOpt:
             self.best_solution = path # If not initialized before
 
         self.eval_solution(path, visited_foodsource)
+
+    def test(self, start, goal):
+        '''
+        test the aco by finding a path from a random starting node and calculating the distance to the goal
+        :param start:
+        :param goal:
+        :return:
+        '''
+        curr_node = start
+        path = [curr_node]
+        while not curr_node == goal:
+            curr_node = self.transition_probability_fct(curr_node, path)
+            path.append(curr_node)
+        return len(path)
 
 

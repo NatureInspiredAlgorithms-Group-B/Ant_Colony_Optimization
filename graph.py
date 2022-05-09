@@ -1,6 +1,6 @@
 class Graph:
 
-    def __init__(self, graph={}, pheromones={}, pheromone_value=0, goal="", grid=[]):
+    def __init__(self, graph={}, pheromones={}, pheromone_value=0, goal=""):
         '''
         Weighted, directed Graph representation of the problem.
         :param graph:
@@ -17,7 +17,6 @@ class Graph:
             for key in self.graph.keys():
                 for value in self.graph.get(key):
                     self.pheromones[(key, value)] = pheromone_value
-        self.grid = grid
 
     def get_pheromone(self, i, j):
         '''
