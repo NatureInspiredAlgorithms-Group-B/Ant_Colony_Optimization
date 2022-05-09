@@ -1,12 +1,18 @@
 import numpy as np
+from copy import deepcopy
+
+
+
+numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
 
 
 
 class View:
-    DEFAULT_ATTRIBUTES = ['type', 'reference']
-    def __init__(self, reference):
-        self.reference = reference
-        self.type = type(reference)
+    DEFAULT_ATTRIBUTES = ['type', 'reference', 'mode', 'graph']
+    def __init__(self, mode, graph):
+        self.mode = mode
+        self.graph = graph
+        self.type = type(self.reference)
         assert any(isinstance(self.reference, structure) for structure in (dict, list, set, tuple))
 
 
@@ -21,9 +27,16 @@ class View:
     def __getattr__(self, attr):
         if attr not in self.DEFAULT_ATTRIBUTES:
             if isinstance(self.reference, dict):
-                return self.reference[attr]    
+                if attr not in self.reference:
+                    self.graph._registery(mode=self.mode, attr=attr)
+                return self.reference[attr]
             else:
                 return self.type(getattr(item, attr) for item in self.reference)
+        elif attr == 'reference':
+            if self.mode == 'node':
+                return self.graph._node_values
+            elif self.mode == 'edge':
+                return self.graph._edge_values
         else:
             return super().__getattr__(attr)
 
@@ -31,12 +44,23 @@ class View:
     def __setattr__(self, attr, val):
         if attr not in self.DEFAULT_ATTRIBUTES:
             if isinstance(self.reference, dict):
-                self.reference[attr] = val  
+                if numeral(val):
+                    self.reference[attr] = np.full_like(self.value, val)
+                elif isinstance(val, np.ndarray):
+                    self.reference[attr] = val  
+                else:
+                    if self.mode == 'node':
+                        self.reference[attr] = [deepcopy(val) for _ in self.graph]
+                    elif self.mode == 'edge':
+                        self.reference[attr] = [[deepcopy(val) for _ in self.graph] for _ in self.graph]
             else:
                 for item in self.reference:
-                    setattr(item, attr, val)
+                    setattr(item, attr, deepcopy(val))
         else:
-            super().__setattr__(attr, val)
+            if numeral(val):
+                super().__setattr__(attr, np.full_like(self.value, val))
+            else:
+                super().__setattr__(attr, val)
 
 
     def __str__(self):
@@ -149,6 +173,12 @@ class Edge:
 
 class Graph:
     def __init__(self, nodes=None, edges=None, default_value=0):
+        """
+        creates an instance of a Graph
+        :param nodes: int, np.ndarray
+        :param edges: None, np.ndarray
+        :param default_value:
+        """
         self.default_value = default_value
         self._node_values = {}
         self._edge_values = {}
@@ -177,6 +207,10 @@ class Graph:
 
 
     def __getitem__(self, key):
+        """
+        returns Node or Edge or False corresponding to the key
+        :param key: Node, int, Edge, (int, int)
+        """
         if isinstance(key, int):
             try:
                 return self._nodes[key]
@@ -210,9 +244,10 @@ class Graph:
 
     def __getattr__(self, attr):
         if attr == 'nodes':
-            return View(self._nodes)
+            return View('node', self)
+            return View('edge', self)
         elif attr == 'edges':
-            return View(self._edge_values)
+            return View('edge', self)
         else:
             raise NotImplemented(f"{attr} is currently not implemented")
 
@@ -235,9 +270,25 @@ class Graph:
         return str(self)
 
 
+    def __contains__(self, other):
+        if isinstance(other, Node):
+            return other in self._nodes
+        elif isinstance(other, Edge):
+            return bool(self[other])
+        else:
+            return False
+
+
     def _registery(self, mode, attr, val=None):
+        """
+        All Graph data are stored in the Graph instance. 
+        Attribute initialization on Nodes and Edges call 
+        the registery to update the Graph data.
+        :param mode: str ['node'|'edge']
+        :param attr: str
+        :param val:
+        """
         val = val if val is not None else self.default_value
-        numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
         if mode == 'node':
             if numeral(val):
                 self._node_values[attr] = np.full((len(self),), type(val)())
@@ -260,6 +311,9 @@ class TSP(Graph):
 
 
     def route(self):
+        """
+        returns the shortest path as well as its length.
+        """
         def rec(self, path, length):
             source = path[-1]
             min_length = float('inf')
@@ -303,19 +357,31 @@ USECASES:
 
     Graph.nodes.attr -> [N0.attr, N1.attr ... Nn.attr]
         attr: known
+    Graph.nodes.attr = [numeral, ..., numeral] -> Graph.nodes.attr = [N0.attr, N1.attr ... Nn.attr]
+        attr: known
         
 """
 
 
 if __name__ == '__main__':
-    #G = Graph(edges=np.ones((4, 4)))
-    #N = G[0]
-    #E = G[0, 1]
-    #print(N, E)
-    #print(G.nodes.reference)
-    #G.nodes.l = []
-    #print(G.nodes.l)
-
+    G = Graph(edges=np.ones((4, 4)))
+    N = G[0]
+    E = G[0, 1]
+    print(N, E)
+    print(G.nodes.l)
+    G.nodes.l = []
+    print(G.nodes.l)
+    G[0].l.append(0)
+    print(G.nodes.l)
+    exit()
     G = TSP(4)
-    print(G)
-    print(G.route())
+    #print(G)
+    #print(G.route())
+    G.edges.N = 10
+    G.edges.N *= 4
+    G[0, 1].N += 2
+    print(G[0, 1].N, G[1, 2].N)
+    G.nodes.N = 10
+    G.nodes.N *= 2
+    G[0].N += 2
+    print(G[0].N, G[1].N)
