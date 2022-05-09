@@ -45,7 +45,7 @@ class View:
         if attr not in self.DEFAULT_ATTRIBUTES:
             if isinstance(self.reference, dict):
                 if numeral(val):
-                    self.reference[attr] = np.full_like(self.value, val)
+                    self.reference[attr] = np.full_like(self.value, val).astype(type(val))
                 elif isinstance(val, np.ndarray):
                     self.reference[attr] = val  
                 else:
@@ -58,7 +58,7 @@ class View:
                     setattr(item, attr, deepcopy(val))
         else:
             if numeral(val):
-                super().__setattr__(attr, np.full_like(self.value, val))
+                super().__setattr__(attr, np.full_like(self.value, val).astype(type(val)))
             else:
                 super().__setattr__(attr, val)
 
@@ -105,16 +105,16 @@ class Node:
 
     def __repr__(self):
         if self.graph._node_values:
-            return f"Node ({', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._node_values.keys())})"
+            return f"Node ⟨{', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._node_values.keys())}⟩"
         else:
-            return f"[{self.reference}]"
+            return f"⟨{self.reference}⟩"
 
 
     def __str__(self):
         if self.graph._node_values:
-            return f"[{self.reference}:({', '.join(str(getattr(self, key)) for key in self.graph._node_values.keys())})]"
+            return f"⟨{self.reference}:{', '.join(str(getattr(self, key)) for key in self.graph._node_values.keys())}⟩"
         else:
-            return f"[{self.reference}]"
+            return f"⟨{self.reference}⟩"
 
 
     def __int__(self):
@@ -123,6 +123,10 @@ class Node:
 
     def __eq__(self, other):
         return self.reference == other.reference and self.graph == other.graph
+
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 
@@ -159,15 +163,19 @@ class Edge:
 
 
     def __repr__(self):
-        return f"Edge {str(self)} ({', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._edge_values.keys())})"
+        return f"Edge {str(self)} ⧼{', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._edge_values.keys())}⧽"
 
 
     def __str__(self):
-        return f"<{self.source}⟼{self.target}>"
+        return f"{self.source}⟝{self.target}"
 
 
     def __eq__(self, other):
         return self.source == other.source and self.target == other.target and self.graph == other.graph
+
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 
@@ -332,8 +340,6 @@ class TSP(Graph):
 
 
 
-
-
 """
 USECASES:
     Graph[x] -> Node(x)
@@ -364,24 +370,24 @@ USECASES:
 
 
 if __name__ == '__main__':
-    G = Graph(edges=np.ones((4, 4)))
-    N = G[0]
-    E = G[0, 1]
-    print(N, E)
-    print(G.nodes.l)
-    G.nodes.l = []
-    print(G.nodes.l)
-    G[0].l.append(0)
-    print(G.nodes.l)
-    exit()
+    #G = Graph(edges=np.ones((4, 4)))
+    #N = G[0]
+    #E = G[0, 1]
+    #print(N, E)
+    #print(G.nodes.l)
+    #G.nodes.l = []
+    #print(G.nodes.l)
+    #G[0].l.append(0)
+    #print(G.nodes.l)
+    #exit()
     G = TSP(4)
-    #print(G)
-    #print(G.route())
+    print(G)
+    print(G.route())
     G.edges.N = 10
     G.edges.N *= 4
     G[0, 1].N += 2
     print(G[0, 1].N, G[1, 2].N)
     G.nodes.N = 10
-    G.nodes.N *= 2
+    G.nodes.N *= 4
     G[0].N += 2
     print(G[0].N, G[1].N)
