@@ -6,11 +6,10 @@ import random
 
 
 class Ant:
-    def __init__(self, graph, neighbors, valid, alpha=1, beta=1, node=None):
+    def __init__(self, graph, neighbors, valid, alpha=1, beta=1):
         self.graph = graph
         self.neighbors = lambda n: neighbors(self, n)
-        self.valid = lambda: valid(self, )
-        self.node = node if node is not None else random.choice(graph)
+        self.valid = lambda: valid(self)
         self.alpha = alpha
         self.beta = beta
         self.reset()
@@ -26,9 +25,10 @@ class Ant:
 
 
     def reset(self):
-        self.path_nodes = []
-        self.path_edges = []
         self.length = 0
+        self.node = random.choice(self.graph)
+        self.path_nodes = [self.node]
+        self.path_edges = []
 
 
     def step(self):
@@ -62,15 +62,16 @@ class Ant:
 
 class AntColony:
     def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1,
-                 neighbors=lambda a, n: n not in a.path_nodes,
-                 valid=lambda a: len(a.path_nodes) == len(a.graph)):
+                 neighbors=lambda a, n: len(a.graph) > len(a.path_nodes) and n not in a.path_nodes 
+                                     or len(a.graph) == len(a.path_nodes) and n == a.path_edges[0].source,
+                 valid=lambda a: len(a.path_nodes) == len(a.graph) + 1):
         self.n_ants = n_ants
         self.graph = graph
         self.rho = rho
         self.alpha = alpha
         self.beta = beta
         self.graph.edges.heuristic = 1/self.graph.edges.value
-        self.ants = [Ant(graph, neighbors, valid, alpha, beta) for _ in range(n_ants)]
+        self.ants = [Ant(self.graph, neighbors, valid, alpha, beta) for _ in range(n_ants)]
         self.node = random.choice(graph)
         self.graph.edges.pheromone = 1.0
 
@@ -104,10 +105,10 @@ class AntColony:
         """(Optionally) Daemon Actions"""
         min_path, min_length = min(((ant.path_nodes, ant.length)
             for ant in self if ant.valid()), key=lambda t: t[1])
+        min_ant = min(self, key=lambda t: t.length)
         if self.min_length > min_length:
-            print(min_length, min_path)
             self.min_length = min_length
-            self.min_path = min_path
+            self.min_path = list(min_path)
 
 
 
@@ -125,16 +126,11 @@ if __name__ == '__main__':
     from graph import *
 
     G = TSP(6)
-    C = AntColony(10, G, alpha=1, beta=10, rho=0.2)
+    C = AntColony(10, G, alpha=1, beta=10, rho=0.1)
     search_path, search_length = G.route()
     ant_path, ant_length = C(100)
     print(G.edges.value)
     print(ant_path, search_path)
     print(ant_length, search_length)
 
-    summ = lambda s: sum(G[a, b].value for a, b in zip(s[:-1], s[1:]))
-
-    print(summ(ant_path + [ant_path[0]]))
-    print(summ(search_path))
-    #print(G.edges)
 
