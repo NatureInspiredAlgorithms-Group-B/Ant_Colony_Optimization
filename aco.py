@@ -39,7 +39,7 @@ class Ant:
         travelled yet.
         :return: ---
         """
-        self.dist_travelled = 0  # distance travelled
+        self.travel_dist = 0  # distance travelled
         self.node = random.choice(self.graph)  # current node on which the ant resides
         self.path_nodes = [self.node]  # current path of ant described through nodes
         self.path_edges = []  # current path of the ant described through edges
@@ -63,7 +63,7 @@ class Ant:
         edge = self.graph[self.node, node]
         self.path_nodes.append(node)
         self.path_edges.append(edge)
-        self.dist_travelled += edge.value  # Update the total travelled distance of this ant
+        self.travel_dist += edge.value  # Update the total travelled distance of this ant
         self.node = node  # Update the current node
 
         return True
@@ -160,9 +160,9 @@ class AntColony:
         (Optionally) Daemon actions # TODO @Mortimer please update this as well, I am unsure about well-defined comments
         :return: ---
         """
-        min_path, min_length = min(((ant.path_nodes, ant.length)
+        min_path, min_length = min(((ant.path_nodes, ant.travel_dist)
             for ant in self if ant.valid()), key=lambda t: t[1])
-        min_ant = min(self, key=lambda t: t.length) # TODO min_ant is not used
+        min_ant = min(self, key=lambda t: t.travel_dist) # TODO min_ant is not used
         if self.min_length > min_length:
             self.min_length = min_length
             self.min_path = list(min_path)
@@ -179,5 +179,5 @@ class AntColony:
         # Update the pheromones on all edges based on the previous pheromones weighted through the evaporation rate, and
         # the newly added pheromones
         for edge in set(edge for ant in ants for edge in ant.path_edges):
-            S = sum(F(ant.length) for ant in ants if edge in ant)
+            S = sum(F(ant.travel_dist) for ant in ants if edge in ant)
             edge.pheromone = (1 - self.rho) * edge.pheromone + self.rho * S
