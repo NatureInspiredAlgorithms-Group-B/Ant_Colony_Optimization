@@ -337,16 +337,19 @@ class Graph:
         distance = 0.
         # rough factor for map distance -> km distance
         factor = 1.5
-        for i in range(len(coords) - 1):
+        for i in range(len(coords)):
             start_pos = coords[i]
-            end_pos = coords[i + 1]
+            if i == len(coords) - 1:
+                end_pos = coords[0]
+            else:
+                end_pos = coords[i+1]
             ax.annotate("",
-                        xy=start_pos, xycoords='data',
-                        xytext=end_pos, textcoords='data',
+                        xy=end_pos, xycoords='data',
+                        xytext=start_pos, textcoords='data',
                         arrowprops=dict(arrowstyle="->",
                                             connectionstyle="arc3"))
             distance += np.linalg.norm(end_pos - start_pos)
-
+	
         textstr = "Stops: %d\nTotal length: %.3f" % (len(coords) - 1, distance*factor)
         #Optional, adds a text box with nr of nodes visited & total distance:
         props = dict(facecolor='lightgoldenrodyellow', alpha=0.8)
