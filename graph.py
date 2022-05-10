@@ -31,6 +31,8 @@ class View:
                     self.graph._registery(mode=self.mode, attr=attr)
                 return self.reference[attr]
             else:
+                if attr not in self.reference:
+                    self.graph._registery(mode=self.mode, attr=attr)
                 return self.type(getattr(item, attr) for item in self.reference)
         elif attr == 'reference':
             if self.mode == 'node':
@@ -64,7 +66,13 @@ class View:
 
 
     def __str__(self):
-        return str(self.reference)
+        if self.reference:
+            return str(self.reference)
+        else:
+            if self.mode == 'node':
+                return str(self.graph._nodes)
+            elif self.mode == 'edge':
+                return str(self.graph._edges)
 
 
     def __repr__(self):
@@ -73,10 +81,11 @@ class View:
 
 
 class Node:
-    DEFAULT_ATTRIBUTES = ['graph', 'reference']
-    def __init__(self, graph, reference):
+    DEFAULT_ATTRIBUTES = ['graph', 'reference', 'name']
+    def __init__(self, graph, reference, name=None):
         self.graph = graph
         self.reference = reference
+        self.name = name or reference
 
 
     def __iter__(self):
@@ -105,16 +114,13 @@ class Node:
 
     def __repr__(self):
         if self.graph._node_values:
-            return f"Node ⟨{', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._node_values.keys())}⟩"
+            return f"Node⟨{', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._node_values.keys() if not key.startswith('_'))}⟩"
         else:
-            return f"⟨{self.reference}⟩"
+            return f"⟨{self.name}⟩"
 
 
     def __str__(self):
-        if self.graph._node_values:
-            return f"⟨{self.reference}:{', '.join(str(getattr(self, key)) for key in self.graph._node_values.keys())}⟩"
-        else:
-            return f"⟨{self.reference}⟩"
+        return f"⟨{self.name}⟩"
 
 
     def __int__(self):
@@ -163,11 +169,11 @@ class Edge:
 
 
     def __repr__(self):
-        return f"Edge {str(self)} ⧼{', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._edge_values.keys())}⧽"
+        return f"Edge{str(self)} ⟨{', '.join(key + ':' + str(getattr(self, key)) for key in self.graph._edge_values.keys() if not key.startswith('_'))}⟩"
 
 
     def __str__(self):
-        return f"{self.source}⟝{self.target}"
+        return f"{str(self.source)}⟝{str(self.target)}"
 
 
     def __eq__(self, other):
@@ -253,7 +259,6 @@ class Graph:
     def __getattr__(self, attr):
         if attr == 'nodes':
             return View('node', self)
-            return View('edge', self)
         elif attr == 'edges':
             return View('edge', self)
         else:
@@ -379,8 +384,14 @@ if __name__ == '__main__':
     #print(G.nodes.l)
     #G[0].l.append(0)
     #print(G.nodes.l)
-    #exit()
     G = TSP(4)
+    edge = G[2, 3]
+    print(edge)
+    edge.pheromone = 42
+    edge._hi = 0
+    print(repr(edge))
+    print(str(edge))
+    exit()
     print(G)
     print(G.route())
     G.edges.N = 10
