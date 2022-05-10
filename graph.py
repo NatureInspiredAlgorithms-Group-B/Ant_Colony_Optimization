@@ -1,7 +1,10 @@
 import numpy as np
 from copy import deepcopy
 
+
+
 numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
+
 
 
 class View:
@@ -74,6 +77,7 @@ class View:
         return 'View ' + str(self)
 
 
+
 class Node:
     DEFAULT_ATTRIBUTES = ['graph', 'reference', 'name']
 
@@ -128,6 +132,7 @@ class Node:
 
     def __hash__(self):
         return hash(str(self))
+
 
 
 class Edge:
@@ -332,7 +337,6 @@ class TSP(Graph):
             self.nodes.coordinates = coordinates
         else:
             raise Exception("Either coordinates or n_nodes must be specified!")
-        
 
 
     def route(self):
