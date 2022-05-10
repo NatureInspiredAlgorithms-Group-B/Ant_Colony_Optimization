@@ -46,8 +46,8 @@ class View:
             if isinstance(self.reference, dict):
                 if numeral(val):
                     self.reference[attr] = np.full_like(self.value, val).astype(type(val))
-                elif isinstance(val, np.ndarray):
-                    self.reference[attr] = val  
+                elif isinstance(val, np.ndarray) or self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
+                    self.reference[attr] = val
                 else:
                     if self.mode == 'node':
                         self.reference[attr] = [deepcopy(val) for _ in self.graph]
@@ -172,7 +172,9 @@ class Edge:
 
 
     def __eq__(self, other):
-        return self.source == other.source and self.target == other.target and self.graph == other.graph
+        directed = self.source == other.source and self.target == other.target and self.graph == other.graph
+        undirected = self.source == other.target and self.target == other.source
+        return directed or not self.graph.bidirectional and undirected
 
 
     def __hash__(self):
@@ -181,7 +183,7 @@ class Edge:
 
 
 class Graph:
-    def __init__(self, nodes=None, edges=None, default_value=0):
+    def __init__(self, nodes=None, edges=None, default_value=0, bidirectional=False):
         """
         creates an instance of a Graph
         :param nodes: int, np.ndarray
@@ -189,6 +191,7 @@ class Graph:
         :param default_value:
         """
         self.default_value = default_value
+        self.bidirectional = bidirectional
         self._node_values = {}
         self._edge_values = {}
         # CONSTRUCTION
@@ -311,11 +314,25 @@ class Graph:
 
 
 class TSP(Graph):
-    def __init__(self, n_nodes, min_distance=0, max_distance=1):
-        distances = np.random.rand(n_nodes, n_nodes)
-        distances = min_distance + distances * (max_distance - min_distance)
-        distances[np.eye(n_nodes).astype(bool)] = 0
-        super().__init__(edges=distances)
+    def __init__(self, n_nodes=None, coordinates=None, min_distance=0, max_distance=1):
+        if n_nodes is not None:
+            distances = np.random.rand(n_nodes, n_nodes)
+            distances = min_distance + distances * (max_distance - min_distance)
+            distances = (distances + distances.T)/2
+            distances[np.eye(n_nodes).astype(bool)] = 0
+            super().__init__(edges=distances, bidirectional=False)
+        elif coordinates is not None:
+            distances = np.zeros((len(coordinates), len(coordinates)))
+            coordinates = [np.array(c) for c in coordinates]
+            print(coordinates)
+            for i, c_i in enumerate(coordinates):
+                for j, c_j in enumerate(coordinates):
+                    distances[i, j] = np.linalg.norm(c_i - c_j)
+            super().__init__(edges=distances, bidirectional=False)
+            self.nodes.coordinates = coordinates
+        else:
+            raise Exception("Either coordinates or n_nodes must be specified!")
+        
 
 
     def route(self):
