@@ -1,14 +1,12 @@
 import numpy as np
 from copy import deepcopy
 
-
-
 numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
-
 
 
 class View:
     DEFAULT_ATTRIBUTES = ['type', 'reference', 'mode', 'graph']
+
     def __init__(self, mode, graph):
         self.mode = mode
         self.graph = graph
@@ -79,9 +77,9 @@ class View:
         return 'View ' + str(self)
 
 
-
 class Node:
     DEFAULT_ATTRIBUTES = ['graph', 'reference', 'name']
+
     def __init__(self, graph, reference, name=None):
         self.graph = graph
         self.reference = reference
@@ -135,9 +133,9 @@ class Node:
         return hash(str(self))
 
 
-
 class Edge:
     DEFAULT_ATTRIBUTES = ['graph', 'source', 'target']
+
     def __init__(self, graph, source, target):
         self.graph = graph
         self.source = source
