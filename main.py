@@ -3,7 +3,7 @@ from aco import AntColony
 
 
 if __name__ == '__main__':
-    coordinates = [(0, 0), (10, 7), (-3, 8), (-5, -8), (-9, 3)]
+    coordinates = [(0, 0), (10, 7), (-3, 8), (-5, -8), (-9, 3), (0, 3), (3, 5), (-7, 5), (-12, -3), (-3, 8)]
     G = TSP(coordinates=coordinates)
     C = AntColony(10, G, alpha=1, beta=1, rho=0.1)
     print(G[1, 2] == G[2, 1])
