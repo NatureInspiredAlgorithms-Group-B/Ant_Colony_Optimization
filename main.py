@@ -3,8 +3,8 @@ from aco import AntColony
 
 
 if __name__ == '__main__':
-    G = TSP(6)
-    C = AntColony(10, G, alpha=1, beta=10, rho=0.1)
+    G = TSP(8)
+    C = AntColony(10, G, alpha=1, beta=1, rho=0.1)
     search_path, search_length = G.route()
     ant_path, ant_length = C(100)
     print(G.edges.value)
