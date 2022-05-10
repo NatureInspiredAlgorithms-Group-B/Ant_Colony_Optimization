@@ -64,13 +64,10 @@ class View:
 
 
     def __str__(self):
-        if self.reference:
-            return str(self.reference)
-        else:
-            if self.mode == 'node':
-                return str(self.graph._nodes)
-            elif self.mode == 'edge':
-                return str(self.graph._edges)
+        if self.mode == 'node':
+            return 'Nodes[' + ', '.join(str(node) for node in self.graph) + ']'
+        elif self.mode == 'edge':
+            return 'Edges[' + ', '.join(str(self.graph[a, b]) for a in self.graph for b in self.graph if self.graph[a, b]) + ']'
 
 
     def __repr__(self):
@@ -389,6 +386,8 @@ if __name__ == '__main__':
     edge._hi = 0
     print(repr(edge))
     print(str(edge))
+    print(G.edges)
+    print(G.nodes)
     exit()
     print(G)
     print(G.route())
