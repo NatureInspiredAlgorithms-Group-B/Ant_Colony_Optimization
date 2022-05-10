@@ -331,7 +331,7 @@ class Graph:
 
         fig, ax = plt.subplots(figsize=(8, 8))
 
-        ax.set_title('Optimized tour')
+        ax.set_title('Route')
         ax.scatter(coords[:, 0], coords[:, 1])
 
         distance = 0.

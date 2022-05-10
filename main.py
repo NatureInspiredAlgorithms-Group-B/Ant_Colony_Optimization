@@ -13,3 +13,4 @@ if __name__ == '__main__':
     print(G.edges.value)
     print(ant_path, search_path)
     print(ant_length, search_length)
+    Graph().visualize(coordinates)
