@@ -162,7 +162,7 @@ class AntColony:
         """
         min_path, min_length = min(((ant.path_nodes, ant.travel_dist)
             for ant in self if ant.valid()), key=lambda t: t[1])
-        min_ant = min(self, key=lambda t: t.length)
+        min_ant = min(self, key=lambda t: t.travel_dist)
         if self.min_length > min_length:
             self.min_length = min_length
             self.min_path = list(min_path)
