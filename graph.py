@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
 
@@ -191,6 +192,8 @@ class Graph:
         self.default_value = default_value
         self._node_values = {}
         self._edge_values = {}
+        # For visualization:
+        self.bg_img = plt.imread("osm_germany.png")
         # CONSTRUCTION
         if nodes is not None:
             if isinstance(nodes, int):
@@ -307,6 +310,44 @@ class Graph:
                 self._edge_values[attr] = np.full((len(self), len(self)), type(val)())
             else:
                 self._edge_values[attr] = [[type(val)() for _ in range(len(self))] for _ in range(len(self))]
+
+
+    def visualize(self, coords):
+        """
+        Creates a visual graph out of a list of nodes.
+        :param coordinates: list of coordinates of all nodes, in the right order
+        :return:
+        """
+
+        coords = np.asarray(coords)
+
+        fig, ax = plt.subplots(figsize=(8, 8))
+
+        ax.set_title('Optimized tour')
+        ax.scatter(coords[:, 0], coords[:, 1])
+
+        distance = 0.
+        # rough factor for map distance -> km distance
+        factor = 1.5
+        for i in range(len(coords) - 1):
+            start_pos = coords[i]
+            end_pos = coords[i + 1]
+            ax.annotate("",
+                        xy=start_pos, xycoords='data',
+                        xytext=end_pos, textcoords='data',
+                        arrowprops=dict(arrowstyle="->",
+                                            connectionstyle="arc3"))
+            distance += np.linalg.norm(end_pos - start_pos)
+
+        textstr = "Stops: %d\nTotal length: %.3f" % (len(coords) - 1, distance*factor)
+        #Optional, adds a text box with nr of nodes visited & total distance:
+        props = dict(facecolor='lightgoldenrodyellow', alpha=0.8)
+        ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=props)
+        ax.imshow(self.bg_img)
+        plt.axis('off')
+
+        plt.tight_layout()
+        plt.show()
 
 
 

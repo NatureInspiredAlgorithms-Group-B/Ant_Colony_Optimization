@@ -110,7 +110,7 @@ class AntColony:
         self.rho = rho
         self.alpha = alpha
         self.beta = beta
-        self.graph.edges.heuristic = 1/self.graph.edges.value
+        self.graph.edges.heuristic = 1/(self.graph.edges.value + 0.00001)
         self.ants = [Ant(self.graph, neighbors, valid, alpha, beta) for _ in range(n_ants)]
         self.node = random.choice(graph)
         self.graph.edges.pheromone = 1.0
@@ -186,5 +186,9 @@ if __name__ == '__main__':
     print(G.edges.value)
     print(ant_path, search_path)
     print(ant_length, search_length)
+
+    example_coords = [(235,234),(324,137),(312,226),(264, 391),(432, 302),(235,234)]
+    #example_coords = [(396,528),(324,137)]
+    Graph().visualize(example_coords)
 
 
