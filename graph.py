@@ -388,7 +388,6 @@ class Germany(TSP):
                   'Düsseldorf': (175, 310),
                   'Kassel': (302, 305), 
                   'Cottbus': (521, 274), 
-                  'Düsseldorf': (177, 311), 
                   'Bremen': (270, 173), 
                   'Karlsruhe': (251, 469),
                   'Nürnberg': (373, 437),
