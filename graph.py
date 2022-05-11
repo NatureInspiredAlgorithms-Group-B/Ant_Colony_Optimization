@@ -53,8 +53,8 @@ class View:
                 if numeral(val):
                     self.reference[attr] = np.full_like(self.value, val).astype(type(val))
                 elif isinstance(val, np.ndarray):
-                    if np.sum(np.abs(val - val.T))/prod(val.shape) > self.THRESHOLD:
-                        raise Exception("The TSP graph is undirected, but the np.matrix is not transposition invariant!")
+                    if not self.graph.bidirectional and np.sum(np.abs(val - val.T))/prod(val.shape) > self.THRESHOLD:
+                        raise Exception("The graph is undirected, but the np.matrix is not transposition invariant!")
                     self.reference[attr] = val
                 elif self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
                     self.reference[attr] = val
@@ -278,7 +278,10 @@ class Graph:
         elif attr == 'edges':
             return View('edge', self)
         else:
-            raise NotImplemented(f"{attr} is currently not implemented")
+            try:
+                return super().__getattr__(self, attr)
+            except:
+                raise Exception(f"{attr} is currently not implemented")
 
 
     def __iter__(self):
@@ -425,6 +428,72 @@ class Germany(TSP):
 
 
 
+class Gridworld(Graph):
+    WALLS = ['w', 'wall']
+    FOOD = ['f', 'food']
+    FOOD_REWARD = 10.
+    def __init__(self, size=None, world=None, values={'f': 'food', 'w': 'wall', ' ': ''}):
+        if size is None and world is None and values is None:
+            raise Exception("There must either size or world and values be defined")
+        elif size is not None and (world is not None or values is not None):
+            raise Exception("Either size or world and values must be defined, but not both")
+        elif size is not None:
+            i_size, j_size = size
+        elif world is not None and values is not None:
+            rows = world.split('\n')
+            i_size, j_size = len(rows), len(rows[0])
+        n_nodes = i_size * j_size
+        edges = np.zeros((n_nodes, n_nodes))
+        for i in range(i_size):
+            for j in range(j_size):
+                # CHECKING FOR NORTH BORDER
+                if i != 0 and values is not None and values[rows[i-1][j]].lower() not in self.WALLS:
+                    edges[i * i_size + j, (i - 1) * i_size + j] = 1.0
+                # CHECKING FOR EAST BORDER
+                if j != j_size - 1 and values is not None and values[rows[i][j+1]].lower() not in self.WALLS:
+                    edges[i*i_size + j, i * i_size + j + 1] = 1.0
+                # CHECKING FOR SOUTH BORDER
+                if i != i_size - 1 and values is not None and values[rows[i+1][j]].lower() not in self.WALLS:
+                    edges[i * i_size + j, (i + 1) * i_size + j] = 1.0
+                # CHECKING FOR WEST BORDER
+                if j != 0 and values is not None and values[rows[i][j-1]].lower() not in self.WALLS:
+                    edges[i * i_size + j, i * i_size + j - 1] = 1.0
+        super().__init__(edges=edges, bidirectional=True)
+        self.coordinates = {(i, j): i * i_size + j for i in range(i_size) for j in range(j_size)}
+        self.reverse_coordinates = {val: key for key, val in self.coordinates.items()}
+        if values is not None:
+            for i in range(i_size):
+                for j in range(j_size):
+                    # CHECKING FOR NORTH BORDER
+                    if i != 0 and values is not None and values[rows[i-1][j]].lower() in self.FOOD:
+                        self[(i, j), (i - 1, j)].heuristic = self.FOOD_REWARD
+                    # CHECKING FOR EAST BORDER
+                    if j != j_size - 1 and values is not None and values[rows[i][j+1]].lower() in self.FOOD:
+                        self[(i, j), (i, j + 1)].heuristic = self.FOOD_REWARD
+                    # CHECKING FOR SOUTH BORDER
+                    if i != i_size - 1 and values is not None and values[rows[i+1][j]].lower() in self.FOOD:
+                        self[(i, j), (i + 1, j)].heuristic = self.FOOD_REWARD
+                    # CHECKING FOR WEST BORDER
+                    if j != 0 and values is not None and values[rows[i][j-1]].lower() in self.FOOD:
+                        self[(i, j), (i, j - 1)].heuristic = self.FOOD_REWARD
+        for node in self:
+            node.name = str(self.reverse_coordinates[int(node)])[1:-1]
+
+
+    def __getitem__(self, key):
+        if isinstance(key, tuple) and len(key) == 2:
+            a, b = key
+            if isinstance(a, tuple) and isinstance(b, tuple):
+                return super().__getitem__((self.coordinates[a], self.coordinates[b]))
+            elif isinstance(a, int) and isinstance(b, int):
+                return super().__getitem__(self.coordinates[key])
+            else:
+                return super().__getitem__(key)
+        else:
+            return super().__getitem__(key)
+
+
+
 """
 USECASES:
     Graph[x] -> Node(x)
@@ -455,35 +524,18 @@ USECASES:
 
 
 if __name__ == '__main__':
-    #G = Graph(edges=np.ones((4, 4)))
-    #N = G[0]
-    #E = G[0, 1]
-    #print(N, E)
-    #print(G.nodes.l)
-    #G.nodes.l = []
-    #print(G.nodes.l)
-    #G[0].l.append(0)
-    #print(G.nodes.l)
-    G = TSP(4)
-    edge = G[2, 3]
-    m = np.ones((4, 4))
-    m[:,0] = 1.00001
-    G.edges.new_val = m
-    print(edge)
-    edge.pheromone = 42
-    edge._hi = 0
-    print(repr(edge))
-    print(str(edge))
-    print(G.edges)
+    world = """      f  w
+         w
+      w  w
+   f  w  w
+ f    w  w
+      f  w
+ www     w
+   f     w
+f        w
+         w"""
+    G = Gridworld(world=world, values={'f': 'food', 'w': 'wall', ' ': ''})
     print(G.nodes)
-    exit()
-    print(G)
-    print(G.route())
-    G.edges.N = 10
-    G.edges.N *= 4
-    G[0, 1].N += 2
-    print(G[0, 1].N, G[1, 2].N)
-    G.nodes.N = 10
-    G.nodes.N *= 4
-    G[0].N += 2
-    print(G[0].N, G[1].N)
+    print(G.edges)
+    print(G[(3, 4)])
+    print(G.edges.heuristic)
