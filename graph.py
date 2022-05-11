@@ -52,9 +52,11 @@ class View:
             if isinstance(self.reference, dict):
                 if numeral(val):
                     self.reference[attr] = np.full_like(self.value, val).astype(type(val))
-                elif isinstance(val, np.ndarray) or self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
-                    if np.sum((val - val.T)**2)/prod(val.shape) > self.THRESHOLD:
+                elif isinstance(val, np.ndarray):
+                    if np.sum(np.abs(val - val.T))/prod(val.shape) > self.THRESHOLD:
                         raise Exception("The TSP graph is undirected, but the np.matrix is not transposition invariant!")
+                    self.reference[attr] = val
+                elif self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
                     self.reference[attr] = val
                 else:
                     if self.mode == 'node':
@@ -328,47 +330,6 @@ class Graph:
                 self._edge_values[attr] = [[type(val)() for _ in range(len(self))] for _ in range(len(self))]
 
 
-    def visualize(self, coords):
-        """
-        Creates a visual graph out of a list of nodes.
-        :param coordinates: list of coordinates of all nodes, in the right order
-        :return:
-        """
-
-        coords = np.asarray(coords)
-
-        fig, ax = plt.subplots(figsize=(8, 8))
-
-        ax.set_title('Route')
-        ax.scatter(coords[:, 0], coords[:, 1])
-
-        distance = 0.
-        # rough factor for map distance -> km distance
-        factor = 1
-        for i in range(len(coords)):
-            start_pos = coords[i]
-            if i == len(coords) - 1:
-                end_pos = coords[0]
-            else:
-                end_pos = coords[i+1]
-            ax.annotate("",
-                        xy=end_pos, xycoords='data',
-                        xytext=start_pos, textcoords='data',
-                        arrowprops=dict(arrowstyle="->",
-                                            connectionstyle="arc3"))
-            distance += np.linalg.norm(end_pos - start_pos)
-	
-        textstr = "Stops: %d\nTotal length: %.3f" % (len(coords) - 1, distance*factor)
-        #Optional, adds a text box with nr of nodes visited & total distance:
-        props = dict(facecolor='lightgoldenrodyellow', alpha=0.8)
-        ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=props)
-        ax.imshow(self.bg_img)
-        plt.axis('off')
-
-        plt.tight_layout()
-        plt.show()
-
-
 
 class TSP(Graph):
     def __init__(self, n_nodes=None, coordinates=None, min_distance=0, max_distance=1):
@@ -381,7 +342,6 @@ class TSP(Graph):
         elif coordinates is not None:
             distances = np.zeros((len(coordinates), len(coordinates)))
             coordinates = [np.array(c) for c in coordinates]
-            print(coordinates)
             for i, c_i in enumerate(coordinates):
                 for j, c_j in enumerate(coordinates):
                     distances[i, j] = np.linalg.norm(c_i - c_j)
@@ -410,6 +370,58 @@ class TSP(Graph):
             else:
                 return path + [path[0]], length + self[path[-1], path[0]].value
         return rec(self, [self[0]], 0)
+
+
+
+class Germany(TSP):
+    def __init__(self):
+        cities = {'Osnabrück': (235, 234),
+                  'Hamburg': (324, 137),
+                  'Hanover': (312, 226),
+                  'Frankfurt': (264, 391),
+                  'Munich': (396, 528),
+                  'Berlin': (478, 215),
+                  'Leipzig': (432, 302),
+                  'Düsseldorf': (175, 310),
+                  'Kassel': (302, 305), 
+                  'Cottbus': (521, 274), 
+                  'Düsseldorf': (177, 311), 
+                  'Bremen': (270, 173), 
+                  'Karlsruhe': (251, 469),
+                  'Nürnberg': (373, 437),
+                  'Saarbrücken': (187, 452)}
+        # coordinates for osna, hamburg, hanover, frankfurt, munich, berlin and leipzig, kassel, Düsseldorf
+        coordinates = list(cities.values())
+        super().__init__(coordinates=coordinates)
+
+
+    def visualize(self):
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.set_title('Route')
+        if 'pheromone' in self._edge_values.keys():
+            pheromone = self.edges.pheromone
+        else:
+            raise Warning(f"Edges of the graph must have the attribute 'pheromone'. Graph only got {', '.join(self._edge_values.keys())}")
+        # Mark all cities with a dot
+        coords = np.array([node.coordinates for node in self])
+        ax.scatter(coords[:, 0], coords[:, 1])
+        # Normalize the pheromone levels
+        max_phero = np.max(pheromone[pheromone != 1.0])
+        min_phero = np.min(pheromone[pheromone != 1.0])
+        for n_i in self:
+            for n_j in self:
+                # Draw the connection of the two nodes based on the pheromone concentration
+                if not n_i == n_j:
+                    x_values = [n_i.coordinates[0], n_j.coordinates[0]]
+                    y_values = [n_i.coordinates[1], n_j.coordinates[1]]
+                    # Normalize pheromones for better visibility
+                    normed_pheromone = (pheromone[n_i.name, n_j.name] - min_phero) / (max_phero - min_phero)
+                    # Draw the connection based on determined pheromone level
+                    ax.plot(x_values, y_values, '-', color=[0, 0, 0, normed_pheromone])
+        ax.imshow(plt.imread("osm_germany.png"))
+        plt.axis('off')
+        plt.tight_layout()
+        plt.show()
 
 
 
@@ -455,7 +467,7 @@ if __name__ == '__main__':
     G = TSP(4)
     edge = G[2, 3]
     m = np.ones((4, 4))
-    m[:,0] = 1.01
+    m[:,0] = 1.00001
     G.edges.new_val = m
     print(edge)
     edge.pheromone = 42
