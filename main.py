@@ -38,7 +38,6 @@ def visualize(pheromone_levels, path):
 
 
 if __name__ == '__main__':
-
     city_coords_dict = {'Osnabrück': (235, 234),
                         'Hamburg': (324, 137),
                         'Hanover': (312, 226),
@@ -46,24 +45,21 @@ if __name__ == '__main__':
                         'Munich': (396, 528),
                         'Berlin': (478, 215),
                         'Leipzig': (432, 302),
-                        'Düsseldorf': (175, 310)}
+                        'Düsseldorf': (175, 310),
+                        'Wien': (615, 525), 
+                        'Prag': (526, 394), 
+                        'Düsseldorf': (177, 311), 
+                        'Den Haag': (65, 249), 
+                        'Zürich': (258, 580)}
 
     # coordinates for osna, hamburg, hanover, frankfurt, munich, berlin and leipzig, kassel, Düsseldorf
     coordinates = list(city_coords_dict.values())
     G = TSP(coordinates=coordinates)
-    C = AntColony(10, G, alpha=1, beta=1, rho=0.1)
+    C = AntColony(20, G, alpha=1, beta=2.0, rho=0.1)
     print(G[1, 2] == G[2, 1])
-    search_path, search_length = G.route()
+    #search_path, search_length = G.route()
     ant_path, ant_length, pheromone = C(300)
 
     # print('Pheromone: ', np.max(pheromone[pheromone != 1.0]))
 
     visualize(pheromone, ant_path)
-
-    #print(G.edges.value)
-    # print(ant_path, search_path)
-    # print(ant_length, search_length)
-    # new_coordinates = np.array([node.coordinates for node in ant_path])
-    # city_correct_order = [coord for coord in new_coordinates]
-    # print(np.array(city_coords_dict.values()))
-    # Graph().visualize(new_coordinates)

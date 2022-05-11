@@ -163,8 +163,12 @@ class Edge:
                 self.graph._registery(mode='edge', attr=attr, val=val)
             try:
                 self.graph._edge_values[attr][int(self.source), int(self.target)] = val
+                if not self.graph.bidirectional:
+                    self.graph._edge_values[attr][int(self.target), int(self.source)] = val
             except:
-                self.graph._edge_values[attr][int(self.source)][int(self.target)]
+                self.graph._edge_values[attr][int(self.source)][int(self.target)] = val
+                if not self.graph.bidirectional:
+                    self.graph._edge_values[attr][int(self.target)][int(self.source)] = val
         else:
             super().__setattr__(attr, val)
 
