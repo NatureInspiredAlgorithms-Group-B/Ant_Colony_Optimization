@@ -46,19 +46,17 @@ if __name__ == '__main__':
                         'Berlin': (478, 215),
                         'Leipzig': (432, 302),
                         'Düsseldorf': (175, 310),
-                        'Wien': (615, 525), 
-                        'Prag': (526, 394), 
-                        'Düsseldorf': (177, 311), 
-                        'Den Haag': (65, 249), 
-                        'Zürich': (258, 580)}
+                        'Kassel': (300, 300),
+                        'Wolfsburg': (360, 215),
+                        'Münster': (200, 275)}
 
     # coordinates for osna, hamburg, hanover, frankfurt, munich, berlin and leipzig, kassel, Düsseldorf
     coordinates = list(city_coords_dict.values())
     G = TSP(coordinates=coordinates)
-    C = AntColony(20, G, alpha=1, beta=2.0, rho=0.1)
+    C = AntColony(20, G, alpha=1, beta=2.0, rho=0.2)
     print(G[1, 2] == G[2, 1])
     #search_path, search_length = G.route()
-    ant_path, ant_length, pheromone = C(300)
+    ant_path, ant_length, pheromone = C(1000)
 
     # print('Pheromone: ', np.max(pheromone[pheromone != 1.0]))
 
