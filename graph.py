@@ -1,5 +1,6 @@
-import numpy as np
 from copy import deepcopy
+from math import prod
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -10,6 +11,7 @@ numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
 
 class View:
     DEFAULT_ATTRIBUTES = ['type', 'reference', 'mode', 'graph']
+    THRESHOLD = 1e-4
 
     def __init__(self, mode, graph):
         self.mode = mode
@@ -51,6 +53,8 @@ class View:
                 if numeral(val):
                     self.reference[attr] = np.full_like(self.value, val).astype(type(val))
                 elif isinstance(val, np.ndarray) or self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
+                    if np.sum((val - val.T)**2)/prod(val.shape) > self.THRESHOLD:
+                        raise Exception("The TSP graph is undirected, but the np.matrix is not transposition invariant!")
                     self.reference[attr] = val
                 else:
                     if self.mode == 'node':
@@ -450,6 +454,9 @@ if __name__ == '__main__':
     #print(G.nodes.l)
     G = TSP(4)
     edge = G[2, 3]
+    m = np.ones((4, 4))
+    m[:,0] = 1.01
+    G.edges.new_val = m
     print(edge)
     edge.pheromone = 42
     edge._hi = 0
