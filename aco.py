@@ -6,7 +6,7 @@ import random
 
 
 class Ant:
-    def __init__(self, graph, neighbors, valid, alpha=1, beta=1):
+    def __init__(self, graph, neighbors, valid, alpha=1, beta=1, termination=lambda self: bool(self.nodes)):
         """
         An ant is supposed to travel within a graph, visiting all nodes exactly once.
         :param graph: graph in which the ant is traveling
@@ -20,7 +20,9 @@ class Ant:
         self.valid = lambda: valid(self)
         self.alpha = alpha
         self.beta = beta
+        self.termination = lambda: termination(self)
         self.reset()
+
 
     def __contains__(self, other):
         """
@@ -35,6 +37,7 @@ class Ant:
         else:
             return False
 
+
     def reset(self):
         """
         Resets the current 'status' of an ant, i.e. ant is initialized on a random node within the graph and has not
@@ -46,6 +49,7 @@ class Ant:
         self.path_nodes = [self.node]  # current path of ant described through nodes
         self.path_edges = []  # current path of the ant described through edges
 
+
     def step(self):
         """
         Performs the next step of the ant, choosing the next node based on transition probabilities and adds the node
@@ -53,21 +57,19 @@ class Ant:
         :return: True if a next step was performed, False otherwise
         """
         # Get the transition options and probabilities
-        nodes, probabilities = self.transitions()
-
+        self.nodes, probabilities = self.transitions()
         # Stop if no nodes are to be visited anymore
-        if not nodes:
-            return False
-
+        if not self.termination(): return False
         # Select a new node based on the provided probabilities and save the new node and the respective edge in the
         # path of the ant
-        node = random.choices(nodes, weights=probabilities)[0]
+        node = random.choices(self.nodes, weights=probabilities)[0]
         edge = self.graph[self.node, node]
         self.path_nodes.append(node)
         self.path_edges.append(edge)
         self.travel_dist += edge.value  # Update the total travelled distance of this ant
         self.node = node  # Update the current node
         return True
+
 
     def transitions(self):
         """
@@ -84,12 +86,12 @@ class Ant:
                 nodes.append(node)
                 heuristic.append(edge.heuristic)
                 pheromone.append(edge.pheromone)
-
         # Perform the calculations to receive the probabilities to determine the next node
         eta = np.array(heuristic)
         tau = np.array(pheromone)
-        rho = tau ** self.alpha * eta ** self.beta  # TODO this is not the same rho as in the AntColony, right? Please rename this according to your preference
-        return nodes, rho/np.sum(rho)
+        phi = tau ** self.alpha * eta ** self.beta  # TODO this is not the same rho as in the AntColony, right? Please rename this according to your preference
+        return nodes, phi/np.sum(phi)
+
 
 
 class AntColony:
@@ -118,6 +120,7 @@ class AntColony:
         self.node = random.choice(graph)
         self.graph.edges.pheromone = 1.0
 
+
     def __call__(self, N=None, visualization=False):
         """
         Executes the ant colony optimization algorithm.
@@ -141,6 +144,7 @@ class AntColony:
         print(f"RUN TIME: {round(end - start, 1)} sec")
         return self.min_path, self.min_length, self.graph.edges.pheromone
 
+
     def __iter__(self):
         """
         Allows to iterate over the ants in the colony
@@ -148,6 +152,7 @@ class AntColony:
         """
         for ant in self.ants:
             yield ant
+
 
     def construct(self, visualization=False):
         """
@@ -157,19 +162,23 @@ class AntColony:
         """
         while any(ant.step() for ant in self):
             if visualization:
-                self.visualize()
+                try:
+                    visualization()
+                except:
+                    pass
+
 
     def daemon(self):
         """
-        (Optionally) Daemon actions # TODO @Mortimer please update this as well, I am unsure about well-defined comments
+        (Optionally) Daemon actions: Updates the best path. Can be overritten
         :return: ---
         """
         min_path, min_length = min(((ant.path_nodes, ant.travel_dist)
             for ant in self if ant.valid()), key=lambda t: t[1])
-        min_ant = min(self, key=lambda t: t.travel_dist)
         if self.min_length > min_length:
             self.min_length = min_length
             self.min_path = list(min_path)
+
 
     def update(self, F=lambda x: 1/x):
         """
