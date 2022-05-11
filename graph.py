@@ -206,7 +206,7 @@ class Graph:
         if nodes is not None:
             if isinstance(nodes, int):
                 self._nodes = [Node(self, n) for n in range(nodes)]
-                self._edges = np.full((n_nodes, n_nodes), default_value)
+                self._edges = np.full((len(nodes), len(nodes)), default_value)
             elif isinstance(nodes, np.ndarray):
                 if isinstance(edges, np.ndarray):
                     if nodes.shape + nodes.shape == edges.shape:
