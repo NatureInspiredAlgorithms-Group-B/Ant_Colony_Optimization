@@ -336,7 +336,7 @@ class Graph:
 
         distance = 0.
         # rough factor for map distance -> km distance
-        factor = 1.5
+        factor = 1
         for i in range(len(coords)):
             start_pos = coords[i]
             if i == len(coords) - 1:

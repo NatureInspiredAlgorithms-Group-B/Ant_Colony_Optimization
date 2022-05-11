@@ -135,7 +135,7 @@ class AntColony:
             self.construct(visualization=visualization)
             self.daemon()
             self.update()
-        return self.min_path, self.min_length
+        return self.min_path, self.min_length, self.graph.edges.pheromone
 
     def __iter__(self):
         """
