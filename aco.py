@@ -205,9 +205,9 @@ class Colony:
 
 
 class AntSystem(Colony):
-    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1):
+    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1, **kwargs):
         super().__init__(n_ants=n_ants, graph=graph, 
-                         rho=rho, alpha=alpha, beta=beta)
+                         rho=rho, alpha=alpha, beta=beta, **kwargs)
 
 
     def global_update(self, F=lambda x: 1/x):
@@ -227,9 +227,10 @@ class AntSystem(Colony):
 
 
 class AntColonySystem(Colony):
-    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1, q=0.3, tau=1.0, phi=0.1):
+    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1,
+                 q=0.3, tau=1.0, phi=0.1, **kwargs):
         super().__init__(n_ants=n_ants, graph=graph, 
-                         rho=rho, alpha=alpha, beta=beta)
+                         rho=rho, alpha=alpha, beta=beta, **kwargs)
         self.graph.edges.pheromone = tau
         self.tau = tau
         self.phi = phi

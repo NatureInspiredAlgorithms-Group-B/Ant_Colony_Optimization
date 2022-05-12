@@ -394,7 +394,6 @@ class Germany(TSP):
         # coordinates for osna, hamburg, hanover, frankfurt, munich, berlin and leipzig, kassel, Düsseldorf
         coordinates = list(cities.values())
         super().__init__(coordinates=coordinates)
-
         self.plt = plt
         self.fig, self.ax = self.plt.subplots(figsize=(8, 8))
         #self.plt.ion()
@@ -510,10 +509,14 @@ class AntWorld(GridWorld):
             for neighbor in node:
                 idx = self.reverse_coordinates[int(neighbor)]
                 pheromones[idx] += self[node, neighbor].pheromone
+        pheromones[ 0,:] *= 1.5
+        pheromones[-1,:] *= 1.5
+        pheromones[:, 0] *= 1.5
+        pheromones[:,-1] *= 1.5
         plt.imshow(pheromones)
-        print(pheromones)
-        plt.show()
-
+        plt.tight_layout()
+        plt.draw()
+        plt.pause(0.0001)
 
 
 
@@ -524,7 +527,7 @@ USECASES:
     Graph[x] -> Edge(x)
         x: Edge
     Graph[x, y] -> Edge(x, y)
-        x: index, Edge
+        x, y: index, Edge
 
     Node(x).attr = val -> Graph[x].attr = val
         attr: known, unknown
@@ -541,25 +544,15 @@ USECASES:
     Graph.nodes.attr -> [N0.attr, N1.attr ... Nn.attr]
         attr: known
     Graph.nodes.attr = [numeral, ..., numeral] -> Graph.nodes.attr = [N0.attr, N1.attr ... Nn.attr]
-        attr: known
-        
+        attr: known, unknown
 """
 
 
+
 if __name__ == '__main__':
-    world = """      f  w
-         w
-      w  w
-   f  w  w
- f    w  w
-      f  w
- www     w
-   f     w
-f        w
-         w"""
-    #G = Gridworld(world=world, values={'f': 'food', 'w': 'wall', ' ': ''})
     G = AntWorld()
     print(G.nodes)
     print(G.edges)
     print(G[(3, 4)])
     print(G.edges.heuristic)
+    G.visualize()
