@@ -1,5 +1,6 @@
-import numpy as np
 from copy import deepcopy
+from math import prod
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -10,6 +11,7 @@ numeral = lambda x: any(isinstance(x, c) for c in (int, float, complex, bool))
 
 class View:
     DEFAULT_ATTRIBUTES = ['type', 'reference', 'mode', 'graph']
+    THRESHOLD = 1e-4
 
     def __init__(self, mode, graph):
         self.mode = mode
@@ -50,7 +52,11 @@ class View:
             if isinstance(self.reference, dict):
                 if numeral(val):
                     self.reference[attr] = np.full_like(self.value, val).astype(type(val))
-                elif isinstance(val, np.ndarray) or self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
+                elif isinstance(val, np.ndarray):
+                    if not self.graph.bidirectional and np.sum(np.abs(val - val.T))/prod(val.shape) > self.THRESHOLD:
+                        raise Exception("The graph is undirected, but the np.matrix is not transposition invariant!")
+                    self.reference[attr] = val
+                elif self.mode == 'node' and (isinstance(val, tuple) or isinstance(val, list)) and len(val) == len(self.graph):
                     self.reference[attr] = val
                 else:
                     if self.mode == 'node':
@@ -272,7 +278,10 @@ class Graph:
         elif attr == 'edges':
             return View('edge', self)
         else:
-            raise NotImplemented(f"{attr} is currently not implemented")
+            try:
+                return super().__getattr__(self, attr)
+            except:
+                raise Exception(f"{attr} is currently not implemented")
 
 
     def __iter__(self):
@@ -324,47 +333,6 @@ class Graph:
                 self._edge_values[attr] = [[type(val)() for _ in range(len(self))] for _ in range(len(self))]
 
 
-    def visualize(self, coords):
-        """
-        Creates a visual graph out of a list of nodes.
-        :param coordinates: list of coordinates of all nodes, in the right order
-        :return:
-        """
-
-        coords = np.asarray(coords)
-
-        fig, ax = plt.subplots(figsize=(8, 8))
-
-        ax.set_title('Route')
-        ax.scatter(coords[:, 0], coords[:, 1])
-
-        distance = 0.
-        # rough factor for map distance -> km distance
-        factor = 1
-        for i in range(len(coords)):
-            start_pos = coords[i]
-            if i == len(coords) - 1:
-                end_pos = coords[0]
-            else:
-                end_pos = coords[i+1]
-            ax.annotate("",
-                        xy=end_pos, xycoords='data',
-                        xytext=start_pos, textcoords='data',
-                        arrowprops=dict(arrowstyle="->",
-                                            connectionstyle="arc3"))
-            distance += np.linalg.norm(end_pos - start_pos)
-	
-        textstr = "Stops: %d\nTotal length: %.3f" % (len(coords) - 1, distance*factor)
-        #Optional, adds a text box with nr of nodes visited & total distance:
-        props = dict(facecolor='lightgoldenrodyellow', alpha=0.8)
-        ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=12, verticalalignment='top', bbox=props)
-        ax.imshow(self.bg_img)
-        plt.axis('off')
-
-        plt.tight_layout()
-        plt.show()
-
-
 
 class TSP(Graph):
     def __init__(self, n_nodes=None, coordinates=None, min_distance=0, max_distance=1):
@@ -377,7 +345,6 @@ class TSP(Graph):
         elif coordinates is not None:
             distances = np.zeros((len(coordinates), len(coordinates)))
             coordinates = [np.array(c) for c in coordinates]
-            print(coordinates)
             for i, c_i in enumerate(coordinates):
                 for j, c_j in enumerate(coordinates):
                     distances[i, j] = np.linalg.norm(c_i - c_j)
@@ -406,6 +373,124 @@ class TSP(Graph):
             else:
                 return path + [path[0]], length + self[path[-1], path[0]].value
         return rec(self, [self[0]], 0)
+
+
+
+class Germany(TSP):
+    def __init__(self):
+        cities = {'Osnabrück': (235, 234),
+                  'Hamburg': (324, 137),
+                  'Hanover': (312, 226),
+                  'Frankfurt': (264, 391),
+                  'Munich': (396, 528),
+                  'Berlin': (478, 215),
+                  'Leipzig': (432, 302),
+                  'Düsseldorf': (175, 310),
+                  'Kassel': (302, 305), 
+                  'Cottbus': (521, 274), 
+                  'Düsseldorf': (177, 311), 
+                  'Bremen': (270, 173), 
+                  'Karlsruhe': (251, 469),
+                  'Nürnberg': (373, 437),
+                  'Saarbrücken': (187, 452)}
+        # coordinates for osna, hamburg, hanover, frankfurt, munich, berlin and leipzig, kassel, Düsseldorf
+        coordinates = list(cities.values())
+        super().__init__(coordinates=coordinates)
+
+
+    def visualize(self):
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.set_title('Route')
+        if 'pheromone' in self._edge_values.keys():
+            pheromone = self.edges.pheromone
+        else:
+            raise Warning(f"Edges of the graph must have the attribute 'pheromone'. Graph only got {', '.join(self._edge_values.keys())}")
+        coords = np.array([node.coordinates for node in self])
+        # Normalize the pheromone levels
+        max_phero = np.max(pheromone[pheromone != 1.0])
+        min_phero = np.min(pheromone[pheromone != 1.0])
+        for n_i in self:
+            for n_j in self:
+                # Draw the connection of the two nodes based on the pheromone concentration
+                if not n_i == n_j:
+                    x_values = [n_i.coordinates[0], n_j.coordinates[0]]
+                    y_values = [n_i.coordinates[1], n_j.coordinates[1]]
+                    # Normalize pheromones for better visibility
+                    normed_pheromone = (pheromone[n_i.name, n_j.name] - min_phero) / (max_phero - min_phero)
+                    # Draw the connection based on determined pheromone level
+                    ax.plot(x_values, y_values, '-', color=[0, 0, 0, normed_pheromone])
+        # Mark all cities with a dot
+        ax.scatter(coords[:, 0], coords[:, 1])
+        ax.imshow(plt.imread("osm_germany.png"))
+        plt.axis('off')
+        plt.tight_layout()
+        plt.show()
+
+
+
+class Gridworld(Graph):
+    WALLS = ['w', 'wall']
+    FOOD = ['f', 'food']
+    FOOD_REWARD = 10.
+    def __init__(self, size=None, world=None, values={'f': 'food', 'w': 'wall', ' ': ''}):
+        if size is None and world is None and values is None:
+            raise Exception("There must either size or world and values be defined")
+        elif size is not None and (world is not None or values is not None):
+            raise Exception("Either size or world and values must be defined, but not both")
+        elif size is not None:
+            i_size, j_size = size
+        elif world is not None and values is not None:
+            rows = world.split('\n')
+            i_size, j_size = len(rows), len(rows[0])
+        n_nodes = i_size * j_size
+        edges = np.zeros((n_nodes, n_nodes))
+        for i in range(i_size):
+            for j in range(j_size):
+                # CHECKING FOR NORTH BORDER
+                if i != 0 and values is not None and values[rows[i-1][j]].lower() not in self.WALLS:
+                    edges[i * i_size + j, (i - 1) * i_size + j] = 1.0
+                # CHECKING FOR EAST BORDER
+                if j != j_size - 1 and values is not None and values[rows[i][j+1]].lower() not in self.WALLS:
+                    edges[i*i_size + j, i * i_size + j + 1] = 1.0
+                # CHECKING FOR SOUTH BORDER
+                if i != i_size - 1 and values is not None and values[rows[i+1][j]].lower() not in self.WALLS:
+                    edges[i * i_size + j, (i + 1) * i_size + j] = 1.0
+                # CHECKING FOR WEST BORDER
+                if j != 0 and values is not None and values[rows[i][j-1]].lower() not in self.WALLS:
+                    edges[i * i_size + j, i * i_size + j - 1] = 1.0
+        super().__init__(edges=edges, bidirectional=True)
+        self.coordinates = {(i, j): i * i_size + j for i in range(i_size) for j in range(j_size)}
+        self.reverse_coordinates = {val: key for key, val in self.coordinates.items()}
+        if values is not None:
+            for i in range(i_size):
+                for j in range(j_size):
+                    # CHECKING FOR NORTH BORDER
+                    if i != 0 and values is not None and values[rows[i-1][j]].lower() in self.FOOD:
+                        self[(i, j), (i - 1, j)].heuristic = self.FOOD_REWARD
+                    # CHECKING FOR EAST BORDER
+                    if j != j_size - 1 and values is not None and values[rows[i][j+1]].lower() in self.FOOD:
+                        self[(i, j), (i, j + 1)].heuristic = self.FOOD_REWARD
+                    # CHECKING FOR SOUTH BORDER
+                    if i != i_size - 1 and values is not None and values[rows[i+1][j]].lower() in self.FOOD:
+                        self[(i, j), (i + 1, j)].heuristic = self.FOOD_REWARD
+                    # CHECKING FOR WEST BORDER
+                    if j != 0 and values is not None and values[rows[i][j-1]].lower() in self.FOOD:
+                        self[(i, j), (i, j - 1)].heuristic = self.FOOD_REWARD
+        for node in self:
+            node.name = str(self.reverse_coordinates[int(node)])[1:-1]
+
+
+    def __getitem__(self, key):
+        if isinstance(key, tuple) and len(key) == 2:
+            a, b = key
+            if isinstance(a, tuple) and isinstance(b, tuple):
+                return super().__getitem__((self.coordinates[a], self.coordinates[b]))
+            elif isinstance(a, int) and isinstance(b, int):
+                return super().__getitem__(self.coordinates[key])
+            else:
+                return super().__getitem__(key)
+        else:
+            return super().__getitem__(key)
 
 
 
@@ -439,32 +524,18 @@ USECASES:
 
 
 if __name__ == '__main__':
-    #G = Graph(edges=np.ones((4, 4)))
-    #N = G[0]
-    #E = G[0, 1]
-    #print(N, E)
-    #print(G.nodes.l)
-    #G.nodes.l = []
-    #print(G.nodes.l)
-    #G[0].l.append(0)
-    #print(G.nodes.l)
-    G = TSP(4)
-    edge = G[2, 3]
-    print(edge)
-    edge.pheromone = 42
-    edge._hi = 0
-    print(repr(edge))
-    print(str(edge))
-    print(G.edges)
+    world = """      f  w
+         w
+      w  w
+   f  w  w
+ f    w  w
+      f  w
+ www     w
+   f     w
+f        w
+         w"""
+    G = Gridworld(world=world, values={'f': 'food', 'w': 'wall', ' ': ''})
     print(G.nodes)
-    exit()
-    print(G)
-    print(G.route())
-    G.edges.N = 10
-    G.edges.N *= 4
-    G[0, 1].N += 2
-    print(G[0, 1].N, G[1, 2].N)
-    G.nodes.N = 10
-    G.nodes.N *= 4
-    G[0].N += 2
-    print(G[0].N, G[1].N)
+    print(G.edges)
+    print(G[(3, 4)])
+    print(G.edges.heuristic)

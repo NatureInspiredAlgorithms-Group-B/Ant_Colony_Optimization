@@ -1,6 +1,8 @@
 from itertools import count
-import random
 from graph import *
+from time import time
+import random
+
 
 
 class Ant:
@@ -65,7 +67,6 @@ class Ant:
         self.path_edges.append(edge)
         self.travel_dist += edge.value  # Update the total travelled distance of this ant
         self.node = node  # Update the current node
-
         return True
 
     def transitions(self):
@@ -124,6 +125,7 @@ class AntColony:
         :param visualization: whether intermediate results should be visualized
         :return: # TODO
         """
+        start = time()
         iterator = count() if N is None else range(N)
         self.min_length = float('inf')
         self.min_path = None
@@ -135,6 +137,8 @@ class AntColony:
             self.construct(visualization=visualization)
             self.daemon()
             self.update()
+        end = time()
+        print(f"RUN TIME: {round(end - start, 1)} sec")
         return self.min_path, self.min_length, self.graph.edges.pheromone
 
     def __iter__(self):
@@ -175,7 +179,6 @@ class AntColony:
         """
         # Get all paths that all ants have taken
         ants = [ant for ant in self if ant.valid()]
-
         # Update the pheromones on all edges based on the previous pheromones weighted through the evaporation rate, and
         # the newly added pheromones
         for edge in set(edge for ant in ants for edge in ant.path_edges):
