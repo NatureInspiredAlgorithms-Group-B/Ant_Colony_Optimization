@@ -397,10 +397,13 @@ class Germany(TSP):
         coordinates = list(cities.values())
         super().__init__(coordinates=coordinates)
 
+        self.plt = plt
+        self.fig, self.ax = self.plt.subplots(figsize=(8, 8))
+        self.plt.ion()
+
 
     def visualize(self):
-        fig, ax = plt.subplots(figsize=(8, 8))
-        ax.set_title('Route')
+        self.ax.set_title('Route')
         if 'pheromone' in self._edge_values.keys():
             pheromone = self.edges.pheromone
         else:
@@ -418,13 +421,14 @@ class Germany(TSP):
                     # Normalize pheromones for better visibility
                     normed_pheromone = (pheromone[n_i.name, n_j.name] - min_phero) / (max_phero - min_phero)
                     # Draw the connection based on determined pheromone level
-                    ax.plot(x_values, y_values, '-', color=[0, 0, 0, normed_pheromone])
+                    self.ax.plot(x_values, y_values, '-', color=[0, 0, 0, normed_pheromone])
         # Mark all cities with a dot
-        ax.scatter(coords[:, 0], coords[:, 1])
-        ax.imshow(plt.imread("osm_germany.png"))
-        plt.axis('off')
-        plt.tight_layout()
-        plt.show()
+        self.ax.scatter(coords[:, 0], coords[:, 1])
+        self.ax.imshow(plt.imread("osm_germany.png"))
+        self.plt.axis('off')
+        self.plt.tight_layout()
+        self.plt.draw()
+        self.plt.pause(0.001)
 
 
 
@@ -477,7 +481,8 @@ class Gridworld(Graph):
                     if j != 0 and values is not None and values[rows[i][j-1]].lower() in self.FOOD:
                         self[(i, j), (i, j - 1)].heuristic = self.FOOD_REWARD
         for node in self:
-            node.name = str(self.reverse_coordinates[int(node)])[1:-1]
+            i, j = self.reverse_coordinates[int(node)]
+            node.name = f"{i}|{j}"
 
 
     def __getitem__(self, key):
