@@ -189,11 +189,14 @@ class Colony:
         (Optionally) Daemon actions: Updates the best path. Can be overritten
         :return: ---
         """
-        min_path, min_length = min(((ant.path_nodes, ant.travel_dist)
-            for ant in self if ant.valid()), key=lambda t: t[1])
-        if self.min_length > min_length:
-            self.min_length = min_length
-            self.min_path = list(min_path)
+        try:
+            min_path, min_length = min(((ant.path_nodes, ant.travel_dist)
+                for ant in self if ant.valid()), key=lambda t: t[1])
+            if self.min_length > min_length:
+                self.min_length = min_length
+                self.min_path = list(min_path)
+        except:
+            pass
 
 
     def local_update(self, edge):
@@ -238,9 +241,12 @@ class AntColonySystem(Colony):
         :param F: function to create the multiplicative inverse of a given number
         :return: ---
         """
-        ant = min((ant for ant in self if ant.valid()), key=lambda a: a.travel_dist)
-        for edge in ant.path_edges:
-            edge.pheromone = edge.pheromone * (1 - self.rho) + self.rho * F(ant.travel_dist)
+        try:
+            ant = min((ant for ant in self if ant.valid()), key=lambda a: a.travel_dist)
+            for edge in ant.path_edges:
+                edge.pheromone = edge.pheromone * (1 - self.rho) + self.rho * F(ant.travel_dist)
+        except:
+            pass
 
 
     def local_update(self, edge):

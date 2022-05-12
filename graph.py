@@ -377,21 +377,20 @@ class TSP(Graph):
 
 
 class Germany(TSP):
-    def __init__(self):
-        cities = {'Osnabrück': (235, 234),
-                  'Hamburg': (324, 137),
-                  'Hanover': (312, 226),
-                  'Frankfurt': (264, 391),
-                  'Munich': (396, 528),
-                  'Berlin': (478, 215),
-                  'Leipzig': (432, 302),
-                  'Düsseldorf': (175, 310),
-                  'Kassel': (302, 305), 
-                  'Cottbus': (521, 274), 
-                  'Bremen': (270, 173), 
-                  'Karlsruhe': (251, 469),
-                  'Nürnberg': (373, 437),
-                  'Saarbrücken': (187, 452)}
+    def __init__(self, cities={'Osnabrück':   (235, 234),
+                               'Hamburg':     (324, 137),
+                               'Hanover':     (312, 226),
+                               'Frankfurt':   (264, 391),
+                               'Munich':      (396, 528),
+                               'Berlin':      (478, 215),
+                               'Leipzig':     (432, 302),
+                               'Düsseldorf':  (175, 310),
+                               'Kassel':      (302, 305), 
+                               'Cottbus':     (521, 274), 
+                               'Bremen':      (270, 173), 
+                               'Karlsruhe':   (251, 469),
+                               'Nürnberg':    (373, 437),
+                               'Saarbrücken': (187, 452)}):
         # coordinates for osna, hamburg, hanover, frankfurt, munich, berlin and leipzig, kassel, Düsseldorf
         coordinates = list(cities.values())
         super().__init__(coordinates=coordinates)
@@ -431,7 +430,7 @@ class Germany(TSP):
 
 
 
-class Gridworld(Graph):
+class GridWorld(Graph):
     WALLS = ['w', 'wall']
     FOOD = ['f', 'food']
     FOOD_REWARD = 10.
@@ -441,40 +440,41 @@ class Gridworld(Graph):
         elif size is not None and (world is not None or values is not None):
             raise Exception("Either size or world and values must be defined, but not both")
         elif size is not None:
-            i_size, j_size = size
+            self.i_size, self.j_size = size
         elif world is not None and values is not None:
             rows = world.split('\n')
-            i_size, j_size = len(rows), len(rows[0])
-        n_nodes = i_size * j_size
+            self.i_size, self.j_size = len(rows), len(rows[0])
+        self.size = self.i_size, self.j_size
+        n_nodes = self.i_size * self.j_size
         edges = np.zeros((n_nodes, n_nodes))
-        for i in range(i_size):
-            for j in range(j_size):
+        for i in range(self.i_size):
+            for j in range(self.j_size):
                 # CHECKING FOR NORTH BORDER
                 if i != 0 and values is not None and values[rows[i-1][j]].lower() not in self.WALLS:
-                    edges[i * i_size + j, (i - 1) * i_size + j] = 1.0
+                    edges[i * self.i_size + j, (i - 1) * self.i_size + j] = 1.0
                 # CHECKING FOR EAST BORDER
-                if j != j_size - 1 and values is not None and values[rows[i][j+1]].lower() not in self.WALLS:
-                    edges[i*i_size + j, i * i_size + j + 1] = 1.0
+                if j != self.j_size - 1 and values is not None and values[rows[i][j+1]].lower() not in self.WALLS:
+                    edges[i*self.i_size + j, i * self.i_size + j + 1] = 1.0
                 # CHECKING FOR SOUTH BORDER
-                if i != i_size - 1 and values is not None and values[rows[i+1][j]].lower() not in self.WALLS:
-                    edges[i * i_size + j, (i + 1) * i_size + j] = 1.0
+                if i != self.i_size - 1 and values is not None and values[rows[i+1][j]].lower() not in self.WALLS:
+                    edges[i * self.i_size + j, (i + 1) * self.i_size + j] = 1.0
                 # CHECKING FOR WEST BORDER
                 if j != 0 and values is not None and values[rows[i][j-1]].lower() not in self.WALLS:
-                    edges[i * i_size + j, i * i_size + j - 1] = 1.0
+                    edges[i * self.i_size + j, i * self.i_size + j - 1] = 1.0
         super().__init__(edges=edges, bidirectional=True)
-        self.coordinates = {(i, j): i * i_size + j for i in range(i_size) for j in range(j_size)}
+        self.coordinates = {(i, j): i * self.i_size + j for i in range(self.i_size) for j in range(self.j_size)}
         self.reverse_coordinates = {val: key for key, val in self.coordinates.items()}
         if values is not None:
-            for i in range(i_size):
-                for j in range(j_size):
+            for i in range(self.i_size):
+                for j in range(self.j_size):
                     # CHECKING FOR NORTH BORDER
                     if i != 0 and values is not None and values[rows[i-1][j]].lower() in self.FOOD:
                         self[(i, j), (i - 1, j)].heuristic = self.FOOD_REWARD
                     # CHECKING FOR EAST BORDER
-                    if j != j_size - 1 and values is not None and values[rows[i][j+1]].lower() in self.FOOD:
+                    if j != self.j_size - 1 and values is not None and values[rows[i][j+1]].lower() in self.FOOD:
                         self[(i, j), (i, j + 1)].heuristic = self.FOOD_REWARD
                     # CHECKING FOR SOUTH BORDER
-                    if i != i_size - 1 and values is not None and values[rows[i+1][j]].lower() in self.FOOD:
+                    if i != self.i_size - 1 and values is not None and values[rows[i+1][j]].lower() in self.FOOD:
                         self[(i, j), (i + 1, j)].heuristic = self.FOOD_REWARD
                     # CHECKING FOR WEST BORDER
                     if j != 0 and values is not None and values[rows[i][j-1]].lower() in self.FOOD:
@@ -498,10 +498,21 @@ class Gridworld(Graph):
 
 
 
-class AntWorld(Gridworld):
+class AntWorld(GridWorld):
     def __init__(self, path='world_0.ant'):
         with open(path, 'r') as file:
             super().__init__(world=file.read())
+
+
+    def visualize(self):
+        pheromones = np.zeros(self.size)
+        for node in self:
+            for neighbor in node:
+                idx = self.reverse_coordinates[int(neighbor)]
+                pheromones[idx] += self[node, neighbor].pheromone
+        plt.imshow(pheromones)
+        print(pheromones)
+        plt.show()
 
 
 
