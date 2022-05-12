@@ -398,7 +398,7 @@ class Germany(TSP):
 
         self.plt = plt
         self.fig, self.ax = self.plt.subplots(figsize=(8, 8))
-        self.plt.ion()
+        #self.plt.ion()
 
 
     def visualize(self):
@@ -419,15 +419,15 @@ class Germany(TSP):
                     y_values = [n_i.coordinates[1], n_j.coordinates[1]]
                     # Normalize pheromones for better visibility
                     normed_pheromone = (pheromone[n_i.name, n_j.name] - min_phero) / (max_phero - min_phero)
+                    #print(normed_pheromone)
                     # Draw the connection based on determined pheromone level
-                    self.ax.plot(x_values, y_values, '-', color=[0, 0, 0, normed_pheromone])
+                    self.ax.plot(x_values, y_values, '-', color=[0, 0, 0, max(min(normed_pheromone, 1), 0)])
         # Mark all cities with a dot
         self.ax.scatter(coords[:, 0], coords[:, 1])
         self.ax.imshow(plt.imread("osm_germany.png"))
         self.plt.axis('off')
         self.plt.tight_layout()
-        self.plt.draw()
-        self.plt.pause(0.001)
+        self.plt.show()
 
 
 
@@ -498,6 +498,14 @@ class Gridworld(Graph):
 
 
 
+class AntWorld(Gridworld):
+    def __init__(self, path='world_0.ant'):
+        with open(path, 'r') as file:
+            super().__init__(world=file.read())
+
+
+
+
 """
 USECASES:
     Graph[x] -> Node(x)
@@ -538,7 +546,8 @@ if __name__ == '__main__':
    f     w
 f        w
          w"""
-    G = Gridworld(world=world, values={'f': 'food', 'w': 'wall', ' ': ''})
+    #G = Gridworld(world=world, values={'f': 'food', 'w': 'wall', ' ': ''})
+    G = AntWorld()
     print(G.nodes)
     print(G.edges)
     print(G[(3, 4)])

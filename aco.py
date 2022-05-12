@@ -6,7 +6,15 @@ import random
 
 
 class Ant:
-    def __init__(self, graph, neighbors, valid, alpha=1, beta=1, termination=lambda self: bool(self.nodes)):
+    def __init__(self, 
+        graph, 
+        neighbors, 
+        valid, 
+        alpha=1, 
+        beta=1, 
+        q=0, 
+        local_update=lambda _: None,
+        termination=lambda self: bool(self.nodes)):
         """
         An ant is supposed to travel within a graph, visiting all nodes exactly once.
         :param graph: graph in which the ant is traveling
@@ -20,6 +28,8 @@ class Ant:
         self.valid = lambda: valid(self)
         self.alpha = alpha
         self.beta = beta
+        self.q = q
+        self.local_update = local_update
         self.termination = lambda: termination(self)
         self.reset()
 
@@ -62,12 +72,16 @@ class Ant:
         if not self.termination(): return False
         # Select a new node based on the provided probabilities and save the new node and the respective edge in the
         # path of the ant
-        node = random.choices(self.nodes, weights=probabilities)[0]
+        if random.random() > self.q:
+            node = random.choices(self.nodes, weights=probabilities)[0]
+        else:
+            node = max(((n, p) for n, p in zip(self.nodes, probabilities)), key=lambda t: t[1])[0]
         edge = self.graph[self.node, node]
         self.path_nodes.append(node)
         self.path_edges.append(edge)
         self.travel_dist += edge.value  # Update the total travelled distance of this ant
         self.node = node  # Update the current node
+        self.local_update(edge)
         return True
 
 
@@ -79,6 +93,7 @@ class Ant:
         """
         # For all nodes the current node is connected to, get the heuristic information and pheromone value for the
         # respective edge
+        h = 1e-8
         nodes, heuristic, pheromone = [], [], []
         for node in self.node:
             if self.neighbors(node):
@@ -87,15 +102,15 @@ class Ant:
                 heuristic.append(edge.heuristic)
                 pheromone.append(edge.pheromone)
         # Perform the calculations to receive the probabilities to determine the next node
-        eta = np.array(heuristic)
-        tau = np.array(pheromone)
-        phi = tau ** self.alpha * eta ** self.beta  # TODO this is not the same rho as in the AntColony, right? Please rename this according to your preference
-        return nodes, phi/np.sum(phi)
+        eta = np.array(heuristic) + h
+        tau = np.array(pheromone) + h
+        psi = tau ** self.alpha * eta ** self.beta  # TODO this is not the same rho as in the Colony, right? Please rename this according to your preference
+        return nodes, psi/np.sum(psi)
 
 
 
-class AntColony:
-    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1,
+class Colony:
+    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1, q=0,
                  neighbors=lambda a, n: len(a.graph) > len(a.path_nodes) and n not in a.path_nodes 
                                      or len(a.graph) == len(a.path_nodes) and n == a.path_edges[0].source,
                  valid=lambda a: len(a.path_nodes) == len(a.graph) + 1):
@@ -116,7 +131,8 @@ class AntColony:
         self.alpha = alpha
         self.beta = beta
         self.graph.edges.heuristic = 1 / (self.graph.edges.value + 0.00001)  # TODO avoid potential division by zero
-        self.ants = [Ant(self.graph, neighbors, valid, alpha, beta) for _ in range(n_ants)]
+        self.ants = [Ant(graph=self.graph, neighbors=neighbors, valid=valid, alpha=alpha, 
+                         beta=beta, q=q, local_update=self.local_update) for _ in range(n_ants)]
         self.node = random.choice(graph)
         self.graph.edges.pheromone = 1.0
 
@@ -136,10 +152,10 @@ class AntColony:
             # Reset all ants at the beginning of each iteration
             for ant in self:
                 ant.reset()
-            # Let ants create their solution and update pheromones based on those
+            # Let ants create their solution and global_update pheromones based on those
             self.construct(visualization=visualization)
             self.daemon()
-            self.update()
+            self.global_update()
         end = time()
         print(f"RUN TIME: {round(end - start, 1)} sec")
         return self.min_path, self.min_length, self.graph.edges.pheromone
@@ -180,7 +196,18 @@ class AntColony:
             self.min_path = list(min_path)
 
 
-    def update(self, F=lambda x: 1/x):
+    def local_update(self, edge):
+        pass
+
+
+
+class AntSystem(Colony):
+    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1):
+        super().__init__(n_ants=n_ants, graph=graph, 
+                         rho=rho, alpha=alpha, beta=beta)
+
+
+    def global_update(self, F=lambda x: 1/x):
         """
         Updates pheromone trails after all ants have finished their travels during one iteration.
         :param F: function to create the multiplicative inverse of a given number
@@ -192,4 +219,30 @@ class AntColony:
         # the newly added pheromones
         for edge in set(edge for ant in ants for edge in ant.path_edges):
             S = sum(F(ant.travel_dist) for ant in ants if edge in ant)
-            edge.pheromone = (1 - self.rho) * edge.pheromone + self.rho * S
+            edge.pheromone = (1 - self.rho) * edge.pheromone + S 
+
+
+
+class AntColonySystem(Colony):
+    def __init__(self, n_ants, graph, rho=0.1, alpha=1, beta=1, q=0.3, tau=1.0, phi=0.1):
+        super().__init__(n_ants=n_ants, graph=graph, 
+                         rho=rho, alpha=alpha, beta=beta)
+        self.graph.edges.pheromone = tau
+        self.tau = tau
+        self.phi = phi
+
+
+    def global_update(self, F=lambda x: 1/x):
+        """
+        Updates pheromone trails after all ants have finished their travels during one iteration.
+        :param F: function to create the multiplicative inverse of a given number
+        :return: ---
+        """
+        ant = min((ant for ant in self if ant.valid()), key=lambda a: a.travel_dist)
+        for edge in ant.path_edges:
+            edge.pheromone = edge.pheromone * (1 - self.rho) + self.rho * F(ant.travel_dist)
+
+
+    def local_update(self, edge):
+        edge.pheromone = edge.pheromone * (1 - self.phi) + self.phi * self.tau
+
