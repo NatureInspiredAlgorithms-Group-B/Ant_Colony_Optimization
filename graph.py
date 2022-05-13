@@ -20,6 +20,23 @@ class View:
         assert any(isinstance(self.reference, structure) for structure in (dict, list, set, tuple))
 
 
+    def __iter__(self):
+        if self.mode == 'node':
+            for node in self.graph._nodes:
+                yield node
+        elif self.mode == 'edge':
+            visited = []
+            for n_i in self.graph.nodes:
+                for n_j in self.graph.nodes:
+                    edge = self.graph[n_i, n_j]
+                    if edge and edge not in visited:
+                        visited.append(edge)
+                        yield edge
+
+
+
+
+
     def __getitem__(self, key):
         return self.reference[key]
 
@@ -550,6 +567,10 @@ USECASES:
 
 
 if __name__ == '__main__':
+    G = Germany()
+    for item in G.edges:
+        print(item)
+    exit()
     G = AntWorld()
     print(G.nodes)
     print(G.edges)

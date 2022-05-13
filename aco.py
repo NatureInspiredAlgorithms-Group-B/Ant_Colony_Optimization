@@ -220,6 +220,7 @@ class AntSystem(Colony):
         ants = [ant for ant in self if ant.valid()]
         # Update the pheromones on all edges based on the previous pheromones weighted through the evaporation rate, and
         # the newly added pheromones
+        #for edge in self.graph.edges:
         for edge in set(edge for ant in ants for edge in ant.path_edges):
             S = sum(F(ant.travel_dist) for ant in ants if edge in ant)
             edge.pheromone = (1 - self.rho) * edge.pheromone + S 
