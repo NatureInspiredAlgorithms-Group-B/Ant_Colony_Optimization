@@ -176,8 +176,10 @@ class Colony:
         :param visualization: whether intermediate results should be visualized
         :return: ---
         """
-        while any(ant.step() for ant in self):
+        while any([ant.step() for ant in self]):
             if visualization:
+                visualization()
+                continue
                 try:
                     visualization()
                 except:
@@ -253,4 +255,5 @@ class AntColonySystem(Colony):
 
     def local_update(self, edge):
         edge.pheromone = edge.pheromone * (1 - self.phi) + self.phi * self.tau
+
 

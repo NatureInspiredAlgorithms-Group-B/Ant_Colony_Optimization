@@ -520,20 +520,29 @@ class AntWorld(GridWorld):
             super().__init__(world=file.read())
 
 
-    def visualize(self):
+    def visualize(self, active=True):
+        if 'pheromone' not in self._edge_values.keys():
+            raise Exception("You should set the edges pheromone attribute for visualization.")
         pheromones = np.zeros(self.size)
         for node in self:
             for neighbor in node:
                 idx = self.reverse_coordinates[int(neighbor)]
                 pheromones[idx] += self[node, neighbor].pheromone
-        pheromones[ 0,:] *= 1.5
-        pheromones[-1,:] *= 1.5
-        pheromones[:, 0] *= 1.5
-        pheromones[:,-1] *= 1.5
-        plt.imshow(pheromones)
-        plt.tight_layout()
-        plt.draw()
-        plt.pause(0.0001)
+        pheromones[ 0,1:-1] *= 4/3
+        pheromones[-1,1:-1] *= 4/3
+        pheromones[1:-1, 0] *= 4/3
+        pheromones[1:-1,-1] *= 4/3
+        pheromones[ 0,  0] *= 2
+        pheromones[-1,  0] *= 2
+        pheromones[ 0, -1] *= 2
+        pheromones[-1, -1] *= 2
+        if active:
+            plt.imshow(pheromones)
+            plt.tight_layout()
+            plt.draw()
+            plt.pause(0.0001)
+        else:
+            return pheromones
 
 
 
